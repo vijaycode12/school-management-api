@@ -1,35 +1,31 @@
 import mysql from 'mysql2/promise';
-import { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, NODE_ENV } from '../config/env.js';
+
+
+const DB_HOST     = process.env.MYSQLHOST      || process.env.DB_HOST;
+const DB_USER     = process.env.MYSQLUSER      || process.env.DB_USER;
+const DB_PASSWORD = process.env.MYSQLPASSWORD  || process.env.DB_PASSWORD;
+const DB_NAME     = process.env.MYSQL_DATABASE || process.env.DB_NAME;
+const DB_PORT     = process.env.MYSQLPORT      || process.env.DB_PORT || 3306;
+const NODE_ENV    = process.env.NODE_ENV;
 
 if (!DB_HOST || !DB_USER || !DB_NAME) {
     throw new Error('Please define DB_HOST, DB_USER, and DB_NAME in your .env file');
 }
 
-
 export const pool = mysql.createPool({
-    host:            DB_HOST     || 'localhost',
-    port:            DB_PORT     || 3306,
-    user:            DB_USER     || 'root',
-    password:        DB_PASSWORD || 'Vijay4043@',
-    database:        DB_NAME,
+    host:               DB_HOST,
+    port:               Number(DB_PORT),
+    user:               DB_USER,
+    password:           DB_PASSWORD,
+    database:           DB_NAME,
     waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit:      0,
+    connectionLimit:    10,
+    queueLimit:         0,
 });
-
 
 const connectToDatabase = async () => {
     try {
-        
-        const tempPool = mysql.createPool({
-            host:     DB_HOST     || 'localhost',
-            port:     DB_PORT     || 3306,
-            user:     DB_USER     || 'root',
-            password: DB_PASSWORD || 'Vijay4043@',
-            connectionLimit: 1,
-        });
-
-        const conn = await tempPool.getConnection();
+        const conn = await pool.getConnection();
         await conn.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\``);
         await conn.query(`USE \`${DB_NAME}\``);
         await conn.query(`
@@ -43,8 +39,6 @@ const connectToDatabase = async () => {
             )
         `);
         conn.release();
-        await tempPool.end();
-
         console.log(`Connected to MySQL database in ${NODE_ENV} mode`);
     } catch (error) {
         console.log('Error connecting to database:', error.message);
