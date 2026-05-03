@@ -11,6 +11,12 @@ import errorMiddleware from './src/middleware/error.middleware.js';
 
 const app = express();
 
+console.log('ENV CHECK:', {
+    MYSQLHOST: process.env.MYSQLHOST,
+    MYSQL_DATABASE: process.env.MYSQL_DATABASE,
+    DB_HOST: process.env.DB_HOST,
+});
+
 const allowedOrigins = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
