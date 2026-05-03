@@ -1,180 +1,110 @@
-# 🏫 School Management API
+School Management API
+A simple REST API built with Node.js, Express and MySQL. It lets you add schools to a database and fetch them sorted by how close they are to a given location.
 
-A RESTful API built with **Node.js**, **Express.js**, and **MySQL** for managing school data with proximity-based sorting.
-
----
-
-## 📁 Project Structure
-
-```
+Project Structure
 school-management-api/
-├── index.js                              # Server entry point
-├── schema.sql                            # SQL schema + seed data
-├── .env.example                          # Environment variable template
-├── SchoolManagement.postman_collection.json
-└── src/
-    ├── app.js                            # Express app setup
-    ├── config/
-    │   └── db.js                         # MySQL connection pool + auto-init
-    ├── controllers/
-    │   └── schoolController.js           # Business logic
-    ├── middleware/
-    │   └── validators.js                 # express-validator rules
-    └── routes/
-        └── schoolRoutes.js               # Route definitions
-```
+├── app.js                        
+├── package.json                  
+├── .env                          
+├── database/
+│   ├── mysql.js                  
+│   └── schema.sql                
+├── config/
+│   └── env.js                    
+├── routes/
+│   └── school.routes.js          
+├── controllers/
+│   └── school.controller.js      
+└── middleware/
+    ├── validate.middleware.js    
+    └── error.middleware.js
 
----
+Getting Started
+What you need
 
-## ⚙️ Setup & Installation
+Node.js v18 or above
+MySQL 8.x running locally
 
-### Prerequisites
-- Node.js v18+
-- MySQL 8.x
-
-### 1. Clone & Install
-```bash
-git clone <your-repo-url>
+1. Clone and install
+bashgit clone <your-repo-url>
 cd school-management-api
 npm install
-```
+2. Set up your .env file
+Create a .env file in the root folder and add your MySQL details:
+envPORT=3000
 
-### 2. Configure Environment
-```bash
-cp .env.example .env
-```
-
-Edit `.env`:
-```env
-PORT=3000
 DB_HOST=localhost
 DB_PORT=3306
 DB_USER=root
-DB_PASSWORD=your_password
+DB_PASSWORD=yourpassword
 DB_NAME=school_management
-```
+3. Create the database table
+Run the schema file in MySQL:
+bashmysql -u root -p < database/schema.sql
+Or paste this directly in your MySQL client:
+sqlCREATE DATABASE IF NOT EXISTS school_management;
+USE school_management;
 
-### 3. Database Setup
-The app **auto-creates** the database and table on first run.  
-Alternatively, run the SQL file manually:
-```bash
-mysql -u root -p < schema.sql
-```
+CREATE TABLE IF NOT EXISTS schools (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    name       VARCHAR(255) NOT NULL,
+    address    VARCHAR(500) NOT NULL,
+    latitude   FLOAT(10, 6) NOT NULL,
+    longitude  FLOAT(10, 6) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+4. Start the server
+bash# development with auto-restart
+npm run dev
 
-### 4. Start the Server
-```bash
-# Production
+# normal start
 npm start
 
-# Development (auto-restart)
-npm run dev
-```
+API Endpoints
+Base URL: http://localhost:3000/api/v1/schools
 
----
-
-## 🛢️ Database Schema
-
-```sql
-CREATE TABLE schools (
-  id          INT AUTO_INCREMENT PRIMARY KEY,
-  name        VARCHAR(255)  NOT NULL,
-  address     VARCHAR(500)  NOT NULL,
-  latitude    FLOAT(10, 6)  NOT NULL,
-  longitude   FLOAT(10, 6)  NOT NULL,
-  created_at  TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
-);
-```
-
----
-
-## 📡 API Reference
-
-### `GET /`
-Health check — confirms the server is running.
-
-**Response `200`**
-```json
-{
+GET /
+Health check to confirm the server is running.
+Response
+json{
   "success": true,
-  "message": "School Management API is running",
-  "version": "1.0.0"
+  "message": "School Management API is running"
 }
-```
 
----
-
-### `POST /addSchool`
-Add a new school to the database.
-
-**Request Body**
-```json
-{
-  "name":      "Kendriya Vidyalaya",
-  "address":   "Banjara Hills, Hyderabad",
-  "latitude":  17.4126,
+POST /api/v1/schools/addSchool
+Adds a new school. All four fields are required.
+Request body
+json{
+  "name": "Kendriya Vidyalaya",
+  "address": "Banjara Hills, Hyderabad",
+  "latitude": 17.4126,
   "longitude": 78.4482
 }
-```
-
-| Field       | Type    | Rules                                  |
-|-------------|---------|----------------------------------------|
-| `name`      | string  | Required, 2–255 chars                  |
-| `address`   | string  | Required, 5–500 chars                  |
-| `latitude`  | float   | Required, between –90 and 90           |
-| `longitude` | float   | Required, between –180 and 180         |
-
-**Response `201`**
-```json
-{
+Field rules
+FieldTypeValidationnamestringRequired, non-emptyaddressstringRequired, non-emptylatitudenumberRequired, between -90 and 90longitudenumberRequired, between -180 and 180
+Success response (201)
+json{
   "success": true,
   "message": "School added successfully",
-  "data": {
-    "id": 1,
-    "name": "Kendriya Vidyalaya",
-    "address": "Banjara Hills, Hyderabad",
-    "latitude": 17.4126,
-    "longitude": 78.4482,
-    "created_at": "2025-01-01T10:00:00.000Z"
-  }
+  "schoolId": 1
 }
-```
-
-**Response `422` — Validation Error**
-```json
-{
+Validation error (400)
+json{
   "success": false,
-  "message": "Validation failed",
-  "errors": [
-    { "field": "latitude", "message": "Latitude must be a number between -90 and 90" }
-  ]
+  "message": "Latitude must be a number between -90 and 90"
 }
-```
 
----
-
-### `GET /listSchools?latitude=<lat>&longitude=<lng>`
-Fetch all schools sorted by proximity to the given location.
-
-**Query Parameters**
-
-| Parameter   | Type  | Required | Description          |
-|-------------|-------|----------|----------------------|
-| `latitude`  | float | ✅       | User's latitude      |
-| `longitude` | float | ✅       | User's longitude     |
-
-**Example**
-```
-GET /listSchools?latitude=17.3850&longitude=78.4867
-```
-
-**Response `200`**
-```json
-{
+GET /api/v1/schools/listSchools
+Returns all schools sorted by distance from your location. Pass your coordinates as query params.
+Query parameters
+ParameterTypeRequiredlatitudenumberYeslongitudenumberYes
+Example
+GET /api/v1/schools/listSchools?latitude=17.3850&longitude=78.4867
+Response (200)
+json{
   "success": true,
-  "message": "Schools retrieved and sorted by proximity",
-  "user_location": { "latitude": 17.385, "longitude": 78.4867 },
-  "total": 2,
-  "data": [
+  "count": 2,
+  "schools": [
     {
       "id": 1,
       "name": "Kendriya Vidyalaya",
@@ -193,46 +123,30 @@ GET /listSchools?latitude=17.3850&longitude=78.4867
     }
   ]
 }
-```
 
----
+How distance is calculated
+Distance between the user and each school is calculated using the Haversine formula — it gives the shortest path between two coordinates on the Earth's surface in kilometres.
+a = sin²(Δlat/2) + cos(lat1) × cos(lat2) × sin²(Δlon/2)
+distance = 2 × R × atan2(√a, √(1−a))
+where R = 6371 km
 
-## 📐 Distance Algorithm
+Testing with Postman
 
-Distance is calculated using the **Haversine formula**, which accounts for the Earth's curvature and returns the great-circle distance in kilometres.
+Open Postman and create a new collection called School Management API
+Add two requests:
 
-```
-a = sin²(ΔlatRad/2) + cos(lat1Rad) * cos(lat2Rad) * sin²(ΔlonRad/2)
-distance = 2 * R * atan2(√a, √(1−a))     // R = 6371 km
-```
+POST /api/v1/schools/addSchool — with a JSON body
+GET /api/v1/schools/listSchools — with latitude and longitude as params
 
----
 
-## 🧪 Testing with Postman
+Add a few schools first, then call listSchools and you'll see them sorted nearest to farthest
 
-1. Open Postman → **Import** → select `SchoolManagement.postman_collection.json`
-2. Set the `baseUrl` variable to your server URL (default: `http://localhost:3000`)
-3. Run requests in order:
-   - **Health Check** — verify server
-   - **Add School** (run 2–3 times with different schools)
-   - **List Schools** — pass your coordinates and observe sorted results
 
----
+Deploying to Railway
 
-## 🚀 Deployment (Render / Railway / Fly.io)
-
-1. Push code to GitHub
-2. Create a new Web Service on [Render](https://render.com) or [Railway](https://railway.app)
-3. Add environment variables from `.env.example`
-4. Set **Start Command**: `npm start`
-5. Provision a MySQL database (e.g., Railway MySQL plugin or PlanetScale)
-6. Update `baseUrl` in the Postman collection to the live URL
-
----
-
-## 🔒 Security Features
-
-- **Helmet** — sets secure HTTP headers
-- **CORS** — configurable cross-origin access
-- **Input validation** — all inputs validated before DB write
-- **Parameterised queries** — prevents SQL injection via `mysql2`
+Push your code to GitHub
+Go to railway.app and create a new project from your repo
+Add the MySQL plugin — Railway auto-fills the DB credentials
+Set your environment variables in the Railway dashboard
+Run schema.sql in Railway's MySQL query tab to create the table
+Railway gives you a live URL — swap that in for localhost in Postman
